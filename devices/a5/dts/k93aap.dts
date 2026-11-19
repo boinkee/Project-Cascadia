@@ -1,4 +1,13 @@
-/* k93aap dts */
+/* k93aap dts 
+* whats working
+* screen
+* power key
+* backlight
+* usb (ssh is broken somehow)
+* smp
+*/
+
+
 /dts-v1/;
 
 / {
