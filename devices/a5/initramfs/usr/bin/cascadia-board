@@ -1,13 +1,17 @@
 #!/bin/sh
 # cascadia-board -- which iPad this is, from the device tree the kernel booted
-# with (its first compatible string): p105 (iPad mini 1), k93 (iPad 2 Wi-Fi),
-# j1 (iPad 3), or unknown.  One image boots more than one board; the boot
-# scripts and the helpers in /usr/bin ask this before touching hardware that
-# only one of them has.
+# with (its first compatible string): p105 (iPad mini 1), k93 (iPad 2 Wi-Fi,
+# iPad2,1 and iPad2,4 alike), j1 (iPad 3), or unknown.  One image boots more
+# than one board; the boot scripts and the helpers in /usr/bin ask this before
+# touching hardware that only one of them has.
+#   cascadia-board         the family: p105, k93, j1, unknown
+#   cascadia-board model   the exact board: p105ap, k93ap, k93aap, j1ap, unknown
 c=$(tr '\0' '\n' < /proc/device-tree/compatible 2>/dev/null | head -n 1)
 case "$c" in
-    apple,p105ap) echo p105 ;;
-    apple,k93ap)  echo k93 ;;
-    apple,j1ap)   echo j1 ;;
-    *)            echo unknown ;;
+    apple,p105ap)  b=p105;  m=p105ap ;;
+    apple,k93ap)   b=k93;   m=k93ap ;;
+    apple,k93aap)  b=k93;   m=k93aap ;;
+    apple,j1ap)    b=j1;    m=j1ap ;;
+    *)             b=unknown; m=unknown ;;
 esac
+if [ "$1" = model ]; then echo "$m"; else echo "$b"; fi

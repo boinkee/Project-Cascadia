@@ -26,6 +26,7 @@ soc() {
     case "$1" in
         a5|A5|ipad-mini1|ipad-mini|p105|p105ap|iPad2,5) echo a5 ;;
         k93|K93|k93ap|K93AP|ipad2|ipad-2|iPad2,1)        echo k93 ;;
+        k93a|K93A|k93aap|K93AAP|ipad2-4|iPad2,4)         echo k93a ;;
         a12|A12|iphone-xr|iphonexr|n841|n841ap|iPhone11,8) echo a12 ;;
         a13|A13|iphone11|n104|n104ap|iPhone12,1)        echo a13 ;;
         *) return 1 ;;
@@ -36,6 +37,7 @@ name() {
     case "$1" in
         a5)  echo "iPad mini 1 (A5)" ;;
         k93) echo "iPad 2 Wi-Fi (A5)" ;;
+        k93a) echo "iPad 2 Wi-Fi, 2012 (A5, 32 nm)" ;;
         a12) echo "iPhone XR (A12)" ;;
         a13) echo "iPhone 11 (A13)" ;;
     esac
@@ -74,6 +76,7 @@ run() {
     case "$d" in
         a5)  export CASCADIA_BOARD=p105; d=a5 ;;
         k93) export CASCADIA_BOARD=k93;  d=a5 ;;
+        k93a) export CASCADIA_BOARD=k93a; d=a5 ;;
     esac
     exec bash "$REPO/devices/$d/cascadia" "$@"
 }

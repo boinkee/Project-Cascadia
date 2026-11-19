@@ -60,8 +60,9 @@ case "$ROOTTYPE" in
     *)    where="the root sits in RAM." ;;
 esac
 # And which iPad: one image boots both.
-case "$(cascadia-board 2>/dev/null)" in
-    k93) model="iPad 2 Wi-Fi (K93AP / S5L8940X)" ;;
+case "$(cascadia-board model 2>/dev/null)" in
+    k93ap)  model="iPad 2 Wi-Fi (K93AP / S5L8940X)" ;;
+    k93aap) model="iPad 2 Wi-Fi, 2012 (K93AAP / S5L8942X)" ;;
     *)   model="iPad mini 1st gen (P105AP / S5L8942X)" ;;
 esac
 if grep -q -e @ROOT@ -e @MODEL@ /etc/motd 2>/dev/null; then
@@ -228,9 +229,11 @@ if [ "$BOARD" = k93 ]; then
     # calibration sequence with the K94 personality's fll-mval, EXECUTE at
     # 0x10001800, ATTN on GPIO 21 (tools/z2-boot.c says why).  The 32 kHz
     # clock is PMU GPIO0 = 0x51 (dts: touch_clk).
+    # ATTN is GPIO 21 on the iPad2,1 and GPIO 131 on the iPad2,4 (their ADTs)
+    case "$(cascadia-board model 2>/dev/null)" in k93aap) attn=131 ;; *) attn=21 ;; esac
     if [ -x /sbin/z2-boot ] && [ -c /dev/hx-touch ] && [ -s /lib/firmware/mtcal.bin ] \
        && [ -s /lib/firmware/K93.mtprops ]; then
-        setsid /sbin/z2-boot -Z -F 0x18da -E 0x10001800 -d -a 21 -C 0x1000c000 -b 9f0b0b02 \
+        setsid /sbin/z2-boot -Z -F 0x18da -E 0x10001800 -d -a "$attn" -C 0x1000c000 -b 9f0b0b02 \
             -c /lib/firmware/mtcal.bin /lib/firmware/K93.mtprops >/tmp/z2boot.log 2>&1 </dev/null &
         msg "K93: touch -- z2-boot started (/tmp/z2boot.log)"
     else

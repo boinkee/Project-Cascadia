@@ -36,11 +36,23 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="$(cd "$ROOT/../.." && pwd)"
-OUT="$ROOT/build/k93/firmware"
-KEEP="$ROOT/build/k93/keep/lib/firmware"
-IPSW_NAME="iPad2,1_8.4.1_12H321_Restore.ipsw"
-IPSW_URL="https://secure-appldnld.apple.com/ios8.4.1/031-31231-20150812-751BEF2C-3C8F-11E5-94D1-BB1A3A53DB92/$IPSW_NAME"
-IPSW_SHA1=529fc75ec834111e255a74241eeb14fb7cc5c46b
+# BOARD (exported by ./cascadia): k93 = iPad2,1, k93a = iPad2,4 (the 2012 iPad 2, S5L8942)
+BOARD="${BOARD:-k93}"
+OUT="$ROOT/build/$BOARD/firmware"
+KEEP="$ROOT/build/$BOARD/keep/lib/firmware"
+case "$BOARD" in
+    k93)
+        K93_MODEL=iPad2,1; MTPROPS=K93.mtprops
+        IPSW_NAME="iPad2,1_8.4.1_12H321_Restore.ipsw"
+        IPSW_URL="https://secure-appldnld.apple.com/ios8.4.1/031-31231-20150812-751BEF2C-3C8F-11E5-94D1-BB1A3A53DB92/$IPSW_NAME"
+        IPSW_SHA1=529fc75ec834111e255a74241eeb14fb7cc5c46b ;;
+    k93a)
+        # No Apple URL or SHA-1 kept here: take the iPad2,4 12H321 IPSW from ipsw.me
+        K93_MODEL=iPad2,4; MTPROPS=K93a.mtprops
+        IPSW_NAME="iPad2,4_8.4.1_12H321_Restore.ipsw"
+        IPSW_URL=""; IPSW_SHA1="" ;;
+    *) echo "error: BOARD=$BOARD is not k93 or k93a" >&2; exit 1 ;;
+esac
 # The module in this iPad: BlueTool's table puts the "2ND" patchram with the
 # BCM4329C0, whose Wi-Fi files are wifi/4329c0/second.* -- the only ones
 # iOS 6.1.3 installs on the K93.  BT_MODULE= picks another image.
@@ -57,6 +69,9 @@ ipsw=
 for c in "${IPSW:-}" "$ROOT/$IPSW_NAME" "$REPO/$IPSW_NAME"; do
     [ -n "$c" ] && [ -f "$c" ] && { ipsw=$c; break; }
 done
+if [ -z "$ipsw" ] && [ -z "$IPSW_URL" ]; then
+    fail "no $IPSW_NAME in $ROOT or $REPO (IPSW=/path/to/it): download the iPad2,4 8.4.1 (12H321) IPSW from ipsw.me"
+fi
 if [ -z "$ipsw" ]; then
     echo "No $IPSW_NAME here.  The iPad 2's boot chain comes out of it (about 1.4 GB,"
     echo "Apple's own server):  $IPSW_URL"
@@ -74,12 +89,16 @@ say "IPSW: $ipsw"
 # Both scripts in the build image: iBoot32Patcher, pycryptodome and capstone
 # are there.  The IPSW is mounted read-only at the name the extractor wants.
 say "the boot chain (iBSS, iBEC) out of the IPSW"
-dkr=(docker run --rm)
+dkr=(docker run --rm -e "BOARD=$BOARD")
+# k93a: the boot chain only.  The GPU's and the camera's files come out of the
+# kernelcache and the root filesystem, whose iPad2,4 keys are not in the tree yet.
+K93_STEPS="python3 tools/k93-extract-firmware.py /ipsw.ipsw && python3 tools/k93-build-bootchain.py"
+[ "$BOARD" = k93 ] && K93_STEPS="$K93_STEPS && mkdir -p build/k93/firmware/apple && python3 scripts/extract-sgx-firmware.py --board k93 /ipsw.ipsw build/k93/firmware/apple/sgx543.fw && python3 scripts/extract-h4isp-firmware.py /ipsw.ipsw build/k93/firmware/apple"
 [ "$(uname -s)" = Linux ] && dkr+=(--user "$(id -u):$(id -g)")
 "${dkr[@]}" -v "$ROOT":/cascadia -v "$ipsw":/ipsw.ipsw:ro -w /cascadia "${IMAGE:-cascadia-build}" \
-    bash -c "python3 tools/k93-extract-firmware.py /ipsw.ipsw && python3 tools/k93-build-bootchain.py && mkdir -p build/k93/firmware/apple && python3 scripts/extract-sgx-firmware.py --board k93 /ipsw.ipsw build/k93/firmware/apple/sgx543.fw && python3 scripts/extract-h4isp-firmware.py /ipsw.ipsw build/k93/firmware/apple" \
+    bash -c "$K93_STEPS" \
     | grep -v '^    0x' || fail "the boot chain did not build (above)"
-BC="$ROOT/build/k93/bootchain-v2"
+BC="$ROOT/build/$BOARD/bootchain-v2"
 cp "$BC/iBSS.sigpatched" "$OUT/iBSS.patched"
 cp "$BC/iBEC.autogo.plain.dfu" "$OUT/iBEC.patched.autogo.plain.dfu"
 [ "$(od -An -tx1 -N4 "$OUT/iBSS.patched" | tr -d ' \n')" = 0e0000ea ] || fail "iBSS.patched is not a raw iBSS"
@@ -98,10 +117,10 @@ if ! ios_connect; then
     exit 0
 fi
 model=$(ios uname -m)
-[ "$model" = iPad2,1 ] || fail "this is a $model, not an iPad2,1"
+[ "$model" = "$K93_MODEL" ] || fail "this is a $model, not an $K93_MODEL"
 say "touch, Wi-Fi and Bluetooth files from the iPad's iOS ($(ios sw_vers -productVersion 2>/dev/null || echo iOS))"
 get() { ios "cat '$1'" > "$2" && [ -s "$2" ] || fail "could not read $1 on the iPad"; }
-get /usr/share/firmware/multitouch/K93.mtprops "$OUT/K93.mtprops"
+get "/usr/share/firmware/multitouch/$MTPROPS" "$OUT/K93.mtprops"
 get /usr/share/firmware/wifi/4329c0/second.bin "$OUT/brcm/brcmfmac4329-sdio.bin"
 get /usr/share/firmware/wifi/4329c0/second.txt "$WORK/second.txt"
 get /usr/sbin/BlueTool "$WORK/BlueTool"

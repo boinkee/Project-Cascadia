@@ -30,7 +30,9 @@ typedef unsigned int u32;
 #define draw_u32(x, y, v, c) draw_u32_hex8(x, y, v, c, SCALE)
 
 /* build-bundle.sh LOADER_FLAGS picks the board (./cascadia k93 build) */
-#ifdef BOARD_K93
+#if defined(BOARD_K93A)
+#define BOARD_NAME	"K93A"
+#elif defined(BOARD_K93)
 #define BOARD_NAME	"K93"
 #else
 #define BOARD_NAME	"P105"

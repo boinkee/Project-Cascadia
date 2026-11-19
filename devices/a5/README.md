@@ -45,6 +45,7 @@ including the parts that didn't work.
 |--------|-------|------|----------|--------|-------|
 | iPad mini 1 (Wi-Fi) | iPad2,5 / A1432 | Apple A5 (S5L8942X) | p105ap | desktop, touch, Wi-Fi, GPU | this README, repository root |
 | iPad 2 (Wi-Fi) *(experimental)* | iPad2,1 / A1395 | Apple A5 (S5L8940X) | k93ap | desktop (NFS), touch, Wi-Fi, Bluetooth, speaker, headphones, built-in and headset microphones, both cameras, volume buttons, GPU, sensors; boots from iOS without a computer | [docs/k93-bringup.md](docs/k93-bringup.md) |
+| iPad 2 (Wi-Fi, 2012) *(experimental, first boot only)* | iPad2,4 / K93AAP | Apple A5 (S5L8942X) | k93aap | succesful boot from ios kdfu, working smp,usb,backlight,powerkey others are being done | [docs/k93a-bringup.md](docs/k93a-bringup.md) |
 | iPhone 11 | iPhone12,1 | Apple A13 (T8030) | n104ap | shell, network over USB, touch, XFCE, Wi-Fi, Bluetooth, internal storage | [`a13/`](../a13/README.md) |
 
 The iPad 2 is the tree's second board, tested on one device (iOS 6.1.3,

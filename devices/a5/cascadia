@@ -64,8 +64,17 @@ case "$BOARD" in
           # landscape 1024x768 scanout; the stack below the kernel at
           # 0x80008000, not inside it (docs/k93-bringup.md)
           BOARD_LOADER_FLAGS="-DBOARD_K93 -DFB_TEXT_W=1024 -DFB_TEXT_H=768 -DFB_TEXT_STRIDE=4096 -DBOOT_STACK_TOP=0x80007000" ;;
-    *) printf 'error: unknown BOARD=%s (p105 or k93)\n' "$BOARD" >&2; exit 1 ;;
+    # The iPad 2 Wi-Fi of 2012: K93AAP, the 32 nm S5L8942 (the mini's chip), a
+    # revised board of the iPad 2.  Same kernel config, tree and loader as the
+    # K93; its own device tree (dts/k93aap.dts), boot chain and iOS files.
+    k93a) BOARD_MODEL="iPad2,4"; BOARD_DESC="iPad 2 Wi-Fi, 2012 (iPad2,4)"
+          BOARD_FW="$ROOT/build/k93a/firmware"; BOARD_KEEP="$ROOT/build/k93a/keep"
+          BOARD_CONFIG_EXTRA="config/k93ap.config"
+          BOARD_LOADER_FLAGS="-DBOARD_K93 -DBOARD_K93A -DFB_TEXT_W=1024 -DFB_TEXT_H=768 -DFB_TEXT_STRIDE=4096 -DBOOT_STACK_TOP=0x80007000" ;;
+    *) printf 'error: unknown BOARD=%s (p105, k93 or k93a)\n' "$BOARD" >&2; exit 1 ;;
 esac
+# k93 and k93a are one family: what the iPad 2's tree has and the mini's lacks
+IS_K93=0; case "$BOARD" in k93|k93a) IS_K93=1 ;; esac
 export BOARD BOARD_MODEL BOARD_FW BOARD_KEEP
 
 say()  { printf '==> %s\n' "$*"; }
@@ -189,7 +198,7 @@ download_ipsw() {
 cmd_firmware() {
     # The iPad 2: its own IPSW for the boot chain, its own iOS for the rest
     # (tools/k93-firmware.sh says why).
-    if [ "$BOARD" = k93 ]; then
+    if [ "$IS_K93" = 1 ]; then
         ensure_image
         IMAGE="$IMAGE" bash "$ROOT/tools/k93-firmware.sh"
         return
@@ -595,7 +604,7 @@ cmd_rootfs() {
 make_overlay() {
     OVL="$ROOT/build/overlay"
     rm -rf "$OVL"; mkdir -p "$OVL"
-    if [ "$BOARD" = k93 ]; then make_overlay_k93; else make_overlay_p105; fi
+    if [ "$IS_K93" = 1 ]; then make_overlay_k93; else make_overlay_p105; fi
     make_overlay_common
 }
 
@@ -606,6 +615,9 @@ make_overlay() {
 make_overlay_k93() {
     local f
     mkdir -p "$OVL/lib/firmware/brcm" "$OVL/lib/firmware/apple"
+    # the iPad2,4's is K93a.mtprops; stage 2 and the driver read K93.mtprops
+    [ "$BOARD" = k93a ] && [ -s "$BOARD_FW/K93a.mtprops" ] && [ ! -s "$BOARD_FW/K93.mtprops" ] \
+        && cp "$BOARD_FW/K93a.mtprops" "$BOARD_FW/K93.mtprops"
     for f in K93.mtprops brcm/brcmfmac4329-sdio.bin brcm/brcmfmac4329-sdio.txt brcm/BCM4329C0.hcd apple/sgx543.fw \
              apple/h4isp-firmware.bin apple/h4isp-setfile-9726.bin apple/h4isp-setfile-7739.bin; do
         if [ -s "$BOARD_FW/$f" ]; then
@@ -858,7 +870,7 @@ cmd_build() {
     ( cd "$ROOT/build/initramfs-root" && rm -f lib/firmware/P105.mtprops lib/firmware/brcm/brcmfmac4334.bin \
           lib/firmware/brcm/BCM4334B0.hcd lib/firmware/apple/sgx543.fw root/.ssh/authorized_keys \
           etc/dropbear/dropbear_ed25519_host_key etc/nfsroot etc/build-date )
-    for k in "$ROOT/build/keep" "$ROOT/build/k93/keep"; do
+    for k in "$ROOT/build/keep" "$ROOT/build/k93/keep" "$ROOT/build/k93a/keep"; do
         [ -d "$k" ] || continue
         ( cd "$k" && find . -type f ) | while read -r f; do rm -f "$ROOT/build/initramfs-root/$f"; done
     done
@@ -1170,7 +1182,7 @@ host_tool() {
 # The iPad mini's own: its prebuilt releases, its NAND install, its app.  The
 # iPad 2 builds its kernel here and keeps Linux on its NAND its own way
 # (docs/k93-bringup.md).
-if [ "$BOARD" = k93 ]; then
+if [ "$IS_K93" = 1 ]; then
     case "${1:-}" in
         get|install|uninstall|nand-volume)
             fail "./cascadia k93 $1 is the iPad mini's (its prebuilt releases, its NAND install) -- for the iPad 2: ./cascadia k93 firmware, rootfs, build, flash (docs/k93-bringup.md)" ;;
@@ -1184,7 +1196,7 @@ case "${1:-}" in
     rootfs) cmd_rootfs ;;
     build)  cmd_build ;;
     firmware) cmd_firmware ;;
-    mtcal)  if [ "$BOARD" = k93 ]; then cmd_firmware      # it fetches the calibration with the rest
+    mtcal)  if [ "$IS_K93" = 1 ]; then cmd_firmware      # it fetches the calibration with the rest
             else bash "$ROOT/tools/mtcal.sh"; fi ;;
     flash)  shift; bash "$ROOT/tools/flash.sh" "$@" ;;
     link)   bash "$ROOT/tools/host-link.sh" ;;

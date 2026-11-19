@@ -31,11 +31,21 @@ sys.path.insert(0, str(ROOT / 'src'))
 from img3decrypt import parse_img3
 from dtparse import parse_node, print_node
 
-IPSW_NAME = 'iPad2,1_8.4.1_12H321_Restore.ipsw'
+import os
+BOARD = os.environ.get('BOARD', 'k93')      # k93 (iPad2,1) or k93a (iPad2,4)
+IPSW_NAME = {'k93': 'iPad2,1_8.4.1_12H321_Restore.ipsw', 'k93a': 'iPad2,4_8.4.1_12H321_Restore.ipsw'}[BOARD]
+MODEL = {'k93': 'iPad2,1', 'k93a': 'iPad2,4'}[BOARD]
 
 # Public firmware decryption material, not device/user credentials.
 # https://theapplewiki.com/wiki/Keys:Donner_12H321_(iPad2,1), and the same
 # values in tihmstar's fwkeydb (keys/firmware/iPad2,1/0x8940/12H321).
+# iPad2,4: https://theapplewiki.com/wiki/Keys:Donner_12H321_(iPad2,4).  No kernelcache
+# key here yet, so no kernelcache (the GPU, camera and the driver read-outs need it).
+PARTS_K93A = {
+    'DeviceTree.k93aap.img3': ('dd6d2ee190455770e5bb930db280e42d', 'db9945495d24e808cfe305a9a062b28f6c341e4577018482d3f51f7d19057443'),
+    'iBSS.k93a.RELEASE.dfu': ('976aa656929ac699fff36715de96876d', '5fe5c47b5620c2b40b1ca2bd1764a92d568901a24e1caf8faf0cf0f84ae11b4e'),
+    'iBEC.k93a.RELEASE.dfu': ('27a1dedaf83ccb53088fd9fb82974062', '019947f0da4258ce36c0fd1b2f3d61fc7add1fd9065cb96be24f86c322832cda'),
+}
 PARTS = {
     'DeviceTree.k93ap.img3': ('5bffad9ad82108c5ae3d38150dc56aea', '12433a4c85ec86ac6e14884f01661e2c5de43adee0323d1e88d4edd8d1ae9fda'),
     'iBSS.k93.RELEASE.dfu': ('781b9672a86ba1b41f8b7fa0af714c94', 'bbd7bf676dbcc6ba93c76d496b7af39ae7772eaaad2ec9fb71dc1fd004827784'),
@@ -88,11 +98,11 @@ def find_ipsw():
 
 
 def main():
-    out = ROOT / 'build/k93/firmware-12H321'
+    out = ROOT / f'build/{BOARD}/firmware-12H321'
     out.mkdir(parents=True, exist_ok=True)
     records = {}
     with zipfile.ZipFile(find_ipsw()) as archive:
-        for name, (iv, key) in PARTS.items():
+        for name, (iv, key) in (PARTS_K93A if BOARD == 'k93a' else PARTS).items():
             entries = [n for n in archive.namelist() if Path(n).name == name]
             if len(entries) != 1:
                 raise RuntimeError(f'Expected exactly one {name}')
@@ -105,7 +115,7 @@ def main():
                     raise RuntimeError('DeviceTree has unexpected trailing bytes')
                 props = node['props']
                 model = props.get('model', b'').rstrip(b'\0').decode()
-                if model != 'iPad2,1':
+                if model != MODEL:
                     raise RuntimeError(f'Unexpected board {model!r}')
                 print(f'Validated Apple DeviceTree: {model}, {end} bytes')
                 text = io.StringIO()
