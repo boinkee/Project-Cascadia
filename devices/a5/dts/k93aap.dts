@@ -1,48 +1,4 @@
-// k93aap full DTS, variant A: the mini's L2 node (same S5L8942X), fb reservation 9 MB as in the minimal DTS that boots.
-// iPad2,4 (K93AAP / S5L8942X) adaptation of the PR #40 K93AP tree.
-// Values changed from the K93AP file, taken from the iPad2,4 12H321 ADT:
-//   compatible/model, CPU affinity 0xa00/0xa01 (measured: mpidr 80000a00),
-//   touch GPIOs: reset 22, enable_cs 103, ATTN 131, enable_download 14.
-// Same as K93AP in the iPad2,4 ADT: sdio (reg 0, irq 39, clock-gate 0x38, REG_ON = PMU GPIO 3),
-//   Bluetooth on UART3 (BT_REG_ON = PMU GPIO 2), touch clock = PMU GPIO 0, touch LDO index 0.
-// NOT checked against the iPad2,4 ADT yet: buttons, hall switch, audio, sensors, NAND.
-// SPDX-License-Identifier: GPL-2.0 OR MIT
-/*
- * Apple iPad 2 Wi-Fi -- iPad2,1 / K93AP / S5L8940X (Apple A5, the original
- * 45 nm part).
- *
- * The iPad mini's tree (p105ap.dts) with the K93's own values.  Every
- * address, interrupt and pin here was read out of the K93's Apple DeviceTree
- * (DeviceTree.k93ap.img3, 12H321: tools/k93-extract-firmware.py writes it out
- * as build/k93/firmware-12H321/adt.txt), not carried over from the mini.
- * The two machines share far more than their marketing suggests: the same
- * PMU (a Dialog D1946, "pmu,d1946"), AIC, GPIO block, PMGR, watchdog
- * counter, PL310 and its CIF, USB OTG, SGX543MP2 and bq27540 gas gauge.
- * What differs:
- *
- *   - CPU affinity 0x900, not 0xa00 (MPIDR read on this board)
- *   - the framebuffer iBoot leaves: 1024x768, stride 4096 (landscape scanout)
- *   - Wi-Fi: a BCM4329 on SDIO (arm-io/sdio, an SDHC that iOS only reaches
- *     through the IOP), not a BCM4334 on HSIC; EHCI has no device behind it
- *   - Bluetooth: the BCM4329's other half, on UART3 (the mini: UART1)
- *   - touch: Zephyr2 ("Z2F13,2") on SPI1 like the mini's, but clocked by PMU
- *     GPIO0 (the ADT's function-clock_enable) instead of the PWM's grape-clk,
- *     and powered by PMU LDO index 0
- *   - buttons on other pins, and a hall-effect (Smart Cover) switch on PMU
- *     GPIO 14
- *   - audio: a CS42L63 codec on I2S0, not CS35L19 amps behind MCA0
- *   - sensors: LIS331DLH accelerometer, AK8975 compass, TSL2581 light sensor,
- *     an "ap3gdl" gyro
- *   - the NAND: raw MLC behind H2FMI with its BCH engine (the ADT's FMIx-BCH
- *     clocks), not PPN -- the mini's mtd-apple-h2fmi does not apply and must
- *     never be pointed at this flash
- *
- * ADT GPIO numbers are (port << 8) | pin, eight to a port, so 0x0703 is
- * pin 59.  PMU GPIO n is configured through PMU register 0x61 + n.
- *
- * Boot protocol (32-bit ARM): r0 = 0, r1 = ~0, r2 = <dtb physical address>
- */
-
+/* k93aap dts */
 /dts-v1/;
 
 / {
