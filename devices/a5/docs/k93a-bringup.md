@@ -19,10 +19,17 @@ download `iPad2,4_8.4.1_12H321_Restore.ipsw` from internet (e.g. ipsw.me) and pu
 - the loader's status screen (1024x768, stride 4096)
 - Linux 6.12 to a shell, USB gadget network, ssh
 - both cores (`enable-method = "apple,pmgr-core"`, MPIDR `0x80000a00`/`a01`)
+- GPU
+- Touchscreen
+- Wifi
+- backlight
+- Bluetooth (although no bluetooth connections are tested)
+- compass
+- buttons
 
 ## Not working (yet)
 
-Touch, Wi-Fi, Bluetooth, buttons(home and volume), audio, sensors, NAND.
+Audio, sensors, NAND.
 
 ## What differs from the iPad2,1
 
@@ -34,6 +41,6 @@ Touch, Wi-Fi, Bluetooth, buttons(home and volume), audio, sensors, NAND.
 | digitizer firmware on iOS | `K93.mtprops` | `K93a.mtprops` |
 | touch ATTN / reset GPIO | 21 / 141 | 131 / 22 |
 
-Files left out for now: the GPU microkernel and the cameras' firmware (they come
+Files left out for now: the cameras' firmware (they come
 out of the kernelcache and the root filesystem, whose iPad2,4 keys are not in the
 tree).
