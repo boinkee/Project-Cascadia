@@ -19,6 +19,7 @@ starts from an app on the home screen, no computer needed.
 |---|---|---|---|---|
 | iPad mini 1 (Wi-Fi) | iPad2,5 / A1432 / p105ap | Apple A5 (S5L8942X) | Linux 6.12: both cores, touch, Wi-Fi, Bluetooth, speakers, battery, the GPU (OpenGL ES 2.0 / GL 2.1), a Wayland desktop (labwc); on the iPad's own NAND next to iOS 8.4.1 (the only version checked), started from the Cascadia app without a computer (or over the cable from an NFS root); iOS's files readable | [devices/a5](devices/a5/README.md) · [quickstart](devices/a5/docs/QUICKSTART.md) |
 | iPad 2 (Wi-Fi) *(experimental)* | iPad2,1 / A1395 / k93ap | Apple A5 (S5L8940X) | Linux 6.12: both cores, touch, Wi-Fi, Bluetooth, the speaker, headphones, the built-in and a headset's microphone, both cameras, the volume buttons, battery and charging, sensors (autorotate), the GPU, XFCE over NFS; boots from its jailbroken iOS without a computer | [K93 bring-up](devices/a5/docs/k93-bringup.md) |
+| iPad 2 (32nm) *(experimental)* | iPad2,4 / A1395 / k93aap | Apple A5 (S5L8942X) | Linux 6.12: SMP, touch, wlan, Bluetooth, battery, GPU, backlight and buttons | [K93a Bring-up](devices/a5/docs/k93a-bringup.md) |
 | iPhone XR *(experimental, contributed)* | iPhone11,8 / N841AP | Apple A12 (T8020) | as its author reports it: Linux 7.3, framebuffer, touch, USB networking/SSH, Wi-Fi, UART Bluetooth, Debian/XFCE over NFS -- not built or tested by the maintainer | [devices/a12](devices/a12/README.md) · [Debian/XFCE](devices/a12/DEBIAN_XFCE_NFS.md) |
 | iPad 8 (Wi-Fi) *(experimental, contributed)* | iPad11,6 / A2270 / J171aAP | Apple A12 (T8020) | Contributor-tested Linux 7.3: native display/brightness, touch, USB networking/SSH, Wi-Fi, UART Bluetooth and G11 GPU-accelerated Omarchy over NFS. Internal-speaker audio and volume controls contributor-tested; sustained-rendering fix awaits hardware retest | [devices/a12](devices/a12/README.md) (`--device ipad8`) · [display](devices/a12/DISPLAY.md) · [GPU](devices/a12/GPU.md) · [audio](devices/a12/AUDIO.md) |
 | iPhone XS Max | iPhone11,6 / D331pAP | Apple A12 (T8020) | Linux 7.3: all six cores, display, touch, USB networking, Wi-Fi, Bluetooth. On [badapple](https://forgejo.toe.quest/kiki/badapple) also the internal storage as ext4, cpufreq and the GPU (OpenCL, OpenGL ES 2/3 and Vulkan, in progress) | [devices/a12](devices/a12/README.md#xs-max) (`A12_BOARD=d331p`) · [badapple](https://forgejo.toe.quest/kiki/badapple) |
@@ -34,12 +35,13 @@ cd Project-Cascadia
 ./cascadia a5 install         # iPad mini 1: everything, step by step
 ./cascadia k93 firmware       # iPad 2 (experimental): then build and flash --kdfu, from
                               # its jailbroken iOS -- devices/a5/docs/k93-bringup.md
+./cascadia k93a setup         # iPad 2 32nm (experimental): setup (install programs needed, etc.) the base
 ./cascadia a12 doctor         # iPhone XR (experimental, contributed): its host requirements
 ./cascadia a12 --device ipad8 doctor  # iPad 8 Wi-Fi (experimental, contributed)
 ./cascadia a13 doctor         # iPhone 11: what this machine is missing
 ```
 
-`./cascadia a5 …`, `./cascadia k93 …`, `./cascadia a12 …` and `./cascadia a13 …` are the device's own commands
+`./cascadia a5 …`, `./cascadia k93 …`, `./cascadia k93a ...`, `./cascadia a12 …` and `./cascadia a13 …` are the device's own commands
 (`./cascadia a5` alone lists them). The device used last is remembered, so
 after the first one a plain `./cascadia build` means the same device again;
 `./cascadia device` shows or changes it. The quickstarts above walk through
@@ -66,7 +68,7 @@ device.
 
 ```
 cascadia        the entry point: ./cascadia <device> <command>
-devices/a5/     the A5 tree (iPad mini 1, iPad 2): kernel patches, device
+devices/a5/     the A5 tree (iPad mini 1, iPad 2(first and second): kernel patches, device
                 tree, initramfs, Mesa's GPU driver, tools, docs, research
 devices/a12/    the A12 tree (iPhone XR, XS Max, iPad 8 Wi-Fi): shared
                 kernel, board-specific boot/DT/firmware, NFS roots, G11 GPU
@@ -90,6 +92,10 @@ IPSW (or Apple's CDN) on your machine.
   2 done, phase 3 but for the NAND as Linux's storage -- headphones, the
   built-in and a headset's microphone and both cameras included.
   [devices/a5/docs/k93-bringup.md](devices/a5/docs/k93-bringup.md)
+- **iPad 2 (32nm A5)** — also experimental, first two stages complete, (booting,
+   screen, framebuffer, wifi, bt, touch, gpu, compass, battery, sound and smp) the third
+   stage is nand (boot from ios, etc.) mostly done.
+  [devices/a5/docs/k93a-bringup.md](devices/a5/docs/k93a-bringup.md)
 - **iPhone XR (A12)** — contributed (#31), experimental: tethered Linux with
   framebuffer/touch, USB, Wi-Fi, Bluetooth and Debian/XFCE over NFS as its
   author reports; it builds on devices/a13's m1n1 patches, which still
