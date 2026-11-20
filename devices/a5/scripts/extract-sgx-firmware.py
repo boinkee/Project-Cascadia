@@ -63,6 +63,8 @@ BOARDS = {
              "0155c713f32ee5fb9f18187e0b87d19ef38b9e56af121821264163627f894b05"),
     "k93": ("kernelcache.release.k93", "38d12734c845d1dcdb84846caf619da7",
             "6dea51edc4c6f6c205e25ca1d9af5b9ee7167ed5685a937ad892e7fcbfb3e615"),
+    "k93a": ("kernelcache.release.k93a", "7571c911c20b12935ca28fd1f22e023b",
+             "dcf3723fc23543626910fdf36436386a62d350b4378b4440984d6a16d94b3039"),
 }
 KERNELCACHE, KC_IV, KC_KEY = BOARDS["p105"]
 

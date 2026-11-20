@@ -1,12 +1,46 @@
-/* k93aap dts 
-* whats working
-* screen
-* power key
-* backlight
-* usb (ssh is broken somehow)
-* smp
-*/
-
+// iPad2,4 (K93AAP / S5L8942X) adaptation of the PR #40 K93AP tree.
+// Values changed from the K93AP file, taken from the iPad2,4 12H321 ADT:
+//   compatible/model, CPU affinity 0xa00/0xa01 (measured: mpidr 80000a00),
+//   touch GPIOs: reset 22, enable_cs 103, ATTN 131, enable_download 14.
+// Same as K93AP in the iPad2,4 ADT: sdio (reg 0, irq 39, clock-gate 0x38, REG_ON = PMU GPIO 3),
+//   Bluetooth on UART3 (BT_REG_ON = PMU GPIO 2), touch clock = PMU GPIO 0, touch LDO index 0.
+// NOT checked against the iPad2,4 ADT yet: buttons, hall switch, audio, sensors, NAND.
+// SPDX-License-Identifier: GPL-2.0 OR MIT
+/*
+ * Apple iPad 2 Wi-Fi -- iPad2,1 / K93AP / S5L8940X (Apple A5, the original
+ * 45 nm part).
+ *
+ * The iPad mini's tree (p105ap.dts) with the K93's own values.  Every
+ * address, interrupt and pin here was read out of the K93's Apple DeviceTree
+ * (DeviceTree.k93ap.img3, 12H321: tools/k93-extract-firmware.py writes it out
+ * as build/k93/firmware-12H321/adt.txt), not carried over from the mini.
+ * The two machines share far more than their marketing suggests: the same
+ * PMU (a Dialog D1946, "pmu,d1946"), AIC, GPIO block, PMGR, watchdog
+ * counter, PL310 and its CIF, USB OTG, SGX543MP2 and bq27540 gas gauge.
+ * What differs:
+ *
+ *   - CPU affinity 0x900, not 0xa00 (MPIDR read on this board)
+ *   - the framebuffer iBoot leaves: 1024x768, stride 4096 (landscape scanout)
+ *   - Wi-Fi: a BCM4329 on SDIO (arm-io/sdio, an SDHC that iOS only reaches
+ *     through the IOP), not a BCM4334 on HSIC; EHCI has no device behind it
+ *   - Bluetooth: the BCM4329's other half, on UART3 (the mini: UART1)
+ *   - touch: Zephyr2 ("Z2F13,2") on SPI1 like the mini's, but clocked by PMU
+ *     GPIO0 (the ADT's function-clock_enable) instead of the PWM's grape-clk,
+ *     and powered by PMU LDO index 0
+ *   - buttons on other pins, and a hall-effect (Smart Cover) switch on PMU
+ *     GPIO 14
+ *   - audio: a CS42L63 codec on I2S0, not CS35L19 amps behind MCA0
+ *   - sensors: LIS331DLH accelerometer, AK8975 compass, TSL2581 light sensor,
+ *     an "ap3gdl" gyro
+ *   - the NAND: raw MLC behind H2FMI with its BCH engine (the ADT's FMIx-BCH
+ *     clocks), not PPN -- the mini's mtd-apple-h2fmi does not apply and must
+ *     never be pointed at this flash
+ *
+ * ADT GPIO numbers are (port << 8) | pin, eight to a port, so 0x0703 is
+ * pin 59.  PMU GPIO n is configured through PMU register 0x61 + n.
+ *
+ * Boot protocol (32-bit ARM): r0 = 0, r1 = ~0, r2 = <dtb physical address>
+ */
 
 /dts-v1/;
 
@@ -194,19 +228,19 @@
 		};
 		volume-up {
 			label = "Volume Up";
-			gpios = <&gpio 57 1>;
+			gpios = <&gpio 2 1>;
 			linux,code = <115>;
 			debounce-interval = <20>;
 		};
 		volume-down {
 			label = "Volume Down";
-			gpios = <&gpio 59 1>;
+			gpios = <&gpio 3 1>;
 			linux,code = <114>;
 			debounce-interval = <20>;
 		};
 		side-switch {
 			label = "Side Switch";
-			gpios = <&gpio 50 1>;
+			gpios = <&gpio 4 1>;
 			linux,input-type = <5>;
 			linux,code = <14>;
 			debounce-interval = <50>;
@@ -246,7 +280,7 @@
 			 * 0x0603 = 51 and function-rts 0x0605 = 53, so RX 52 and
 			 * CTS 54 by the mini's layout (TX, RX, RTS, CTS). */
 			uart3_pins: uart3-pins {
-				pins = "gpio51", "gpio52", "gpio53", "gpio54";
+				pins = "gpio48", "gpio49", "gpio50", "gpio51";
 				function = "periph";
 			};
 
@@ -264,12 +298,12 @@
 			 * sensors' clocks while the ISP runs, plain outputs
 			 * driven low otherwise, as iBoot leaves them. */
 			camera_clk_pins: camera-clk-pins {
-				pins = "gpio193", "gpio195";
+				pins = "gpio69", "gpio71";
 				function = "periph";
 			};
 
 			camera_clk_idle: camera-clk-idle {
-				pins = "gpio193", "gpio195";
+				pins = "gpio69", "gpio71";
 				function = "gpio";
 			};
 		};
@@ -348,8 +382,8 @@
 				compatible = "apple,z2-multitouch";
 				reg = <0>;
 				spi-max-frequency = <5000000>;
-				/* one LDO, as on the iPad 3 (j1ap.dts) */
-				hv-supply = <&touch_ldo>;
+				/* two LDOs on the iPad2,4: analog 19, core 0 */
+				hv-supply = <&touch_ana>;
 				core-supply = <&touch_ldo>;
 				pmuclk-supply = <&touch_clk>;
 				reset-gpios = <&gpio 22 0>;
@@ -575,9 +609,10 @@
 			pinctrl-names = "active", "idle";
 			pinctrl-0 = <&camera_clk_pins>;
 			pinctrl-1 = <&camera_clk_idle>;
-			rear-enable-gpios = <&gpio 192 0>;
-			front-enable-gpios = <&gpio 194 1>;
+			rear-enable-gpios = <&gpio 68 0>;
+			front-enable-gpios = <&gpio 70 1>;
 			apple,sensor-type = <6>;
+			status = "disabled";
 		};
 
 		/*
@@ -647,6 +682,20 @@
 					reg = <0x20>;
 					mask = <0x20>;
 					enable = <0x20>;
+				};
+
+				/*
+				 * The iPad2,4's digitizer has a second supply, as the mini's:
+				 * its ADT multi-touch function-power_ana is 0x0213 (LDO 19) next
+				 * to function-power_ldo 0x0200 (LDO 0, above).  The PMU kext's
+				 * table gives entry 19 register 0x23, bit 0x40 (the same entry
+				 * the mini's DTS uses); iBoot leaves it off.
+				 */
+				touch_ana: touch_ana@23 {
+					compatible = "apple,pmu-pwrsw";
+					reg = <0x23>;
+					mask = <0x40>;
+					enable = <0x40>;
 				};
 
 				/*
@@ -723,7 +772,7 @@
 				reg = <0x4a>;
 				headset-switch = <&headset_switch>;
 				reset-gpios = <&pmu 13 1>;
-				speaker-enable-gpios = <&gpio 39 0>;
+				speaker-enable-gpios = <&gpio 5 0>;
 				clocks = <&audio>;
 				clock-names = "mclk";
 				#sound-dai-cells = <0>;
@@ -741,21 +790,8 @@
 			clock-names = "i2c";
 			#address-cells = <1>;
 			#size-cells = <0>;
-			status = "okay";
+			status = "disabled";
 
-			/* ADT compass,akm8975b (WIA reads 0x48).  Its
-			 * orientation rows are (0 1 0) (-1 0 0) (0 0 1): unlike
-			 * gravity, a field reads the same sign in iOS and IIO,
-			 * so they are the matrix in iOS's portrait axes; turned
-			 * to the landscape screen (see i2c2 below) they become
-			 * diag(-1, -1, 1). */
-			magnetometer@e {
-				compatible = "asahi-kasei,ak8975";
-				reg = <0x0e>;
-				mount-matrix = "-1", "0", "0",
-					       "0", "-1", "0",
-					       "0", "0", "1";
-			};
 		};
 
 		/*
@@ -785,6 +821,22 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			status = "okay";
+
+			/* the ADT puts the compass on i2c2 here (arm-io/i2c2: accelerometer
+			 * 0x19, compass 0x0e, gyro 0x68, als 0x39); the iPad2,1 has it on i2c1 */
+			/* ADT compass,akm8975b (WIA reads 0x48).  Its
+			 * orientation rows are (0 1 0) (-1 0 0) (0 0 1): unlike
+			 * gravity, a field reads the same sign in iOS and IIO,
+			 * so they are the matrix in iOS's portrait axes; turned
+			 * to the landscape screen (see i2c2 below) they become
+			 * diag(-1, -1, 1). */
+			magnetometer@e {
+				compatible = "asahi-kasei,ak8975";
+				reg = <0x0e>;
+				mount-matrix = "-1", "0", "0",
+					       "0", "-1", "0",
+					       "0", "0", "1";
+			};
 
 			accelerometer@19 {
 				compatible = "st,lis331dlh-accel";

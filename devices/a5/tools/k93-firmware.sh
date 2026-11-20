@@ -93,6 +93,7 @@ dkr=(docker run --rm -e "BOARD=$BOARD")
 # k93a: the boot chain only.  The GPU's and the camera's files come out of the
 # kernelcache and the root filesystem, whose iPad2,4 keys are not in the tree yet.
 K93_STEPS="python3 tools/k93-extract-firmware.py /ipsw.ipsw && python3 tools/k93-build-bootchain.py"
+[ "$BOARD" = k93a ] && K93_STEPS="$K93_STEPS && mkdir -p build/k93a/firmware/apple && python3 scripts/extract-sgx-firmware.py --board k93a /ipsw.ipsw build/k93a/firmware/apple/sgx543.fw"
 [ "$BOARD" = k93 ] && K93_STEPS="$K93_STEPS && mkdir -p build/k93/firmware/apple && python3 scripts/extract-sgx-firmware.py --board k93 /ipsw.ipsw build/k93/firmware/apple/sgx543.fw && python3 scripts/extract-h4isp-firmware.py /ipsw.ipsw build/k93/firmware/apple"
 [ "$(uname -s)" = Linux ] && dkr+=(--user "$(id -u):$(id -g)")
 "${dkr[@]}" -v "$ROOT":/cascadia -v "$ipsw":/ipsw.ipsw:ro -w /cascadia "${IMAGE:-cascadia-build}" \
