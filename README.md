@@ -10,6 +10,8 @@ starts from an app on the home screen, no computer needed.
 ![iPhone 11](imgs/i11xfcechromium.png)
 ![iPhone XR running Debian XFCE from a Kali NetHunter NFS host](imgs/iphone-xr-debian-nethunter.png)
 ![Boot](imgs/dualcoreboot.png)
+![iPad 2 revised booted with fbkeyboard](imgs/k93aap-boot.jpg)
+
 
 ## Devices
 
